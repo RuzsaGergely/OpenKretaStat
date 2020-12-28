@@ -23,6 +23,8 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
         $_SESSION["login-status"] = true;
         $_SESSION["access_token"] = $decoded["access_token"];
         $_SESSION["refresh_token"] = $decoded["refresh_token"];
+        $_SESSION["institute_code"] = $_POST["school"];
+        $_SESSION["user"] = $_POST["username"];
         header('Location: ../dashboard.php');
     } else {
         session_destroy();
