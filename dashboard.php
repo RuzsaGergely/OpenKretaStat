@@ -33,6 +33,7 @@ function makerequest($headers, $url){
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>OpenKretaStat - Dashboard</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
@@ -58,10 +59,54 @@ function makerequest($headers, $url){
 
     </div>
 </nav>
-<div style="padding-left: 10%; padding-right: 10%; padding-top: 1%;">
+<div class="contentdiv">
     <div class="card module" id="grades">
         <div class="card-body">
-            This is some text within a card body. 1
+            <?php
+            $response = makerequest(Array(
+                "Authorization: Bearer " . $_SESSION["access_token"],
+                "User-Agent: " . $config["useragent"]
+            ), "https://".$_SESSION["institute_code"].".e-kreta.hu/ellenorzo/V3/Sajat/Ertekelesek");
+
+            // Igor... ha nem találsz vénát... csináljá'!
+            function arrayCheck($array, $search){
+                $van = false;
+                foreach ($array as $item){
+                    if($item["tantargy"] == $search){
+                        $van = true;
+                        break;
+                    }
+                }
+                return $van;
+            }
+
+            function getIndex($array, $search){
+                for ($i = 0; $i < sizeof($array); $i++) {
+                    if($array[$i]["tantargy"] == $search){
+                        return $i;
+                    }
+                }
+            }
+
+            $tantargyak = Array();
+
+            foreach ($response as $item){
+                if(!arrayCheck($tantargyak, $item["Tantargy"]["Nev"])){
+                    array_push($tantargyak, Array(
+                            "tantargy" => $item["Tantargy"]["Nev"]
+                    ));
+                }
+            }
+
+            foreach ($response as $item){
+                array_push($tantargyak[getIndex($tantargyak, $item["Tantargy"]["Nev"])], Array(
+                    "jegy" => $item["SzamErtek"],
+                    "suly" => $item["SulySzazalekErteke"]
+                ));
+            }
+
+            print_r($tantargyak);
+            ?>
         </div>
     </div>
     <div class="card module" id="stats" style="display: none">
@@ -76,46 +121,110 @@ function makerequest($headers, $url){
     </div>
     <div class="card module" id="notes" style="display: none">
         <div class="card-body">
-            This is some text within a card body. 4
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                    <tr>
+                        <th scope="col">Dátum</th>
+                        <th scope="col">Tipus</th>
+                        <th scope="col">Tanár</th>
+                        <th scope="col">Cim</th>
+                        <th scope="col">Szöveg</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <?php
+                    $response = makerequest(Array(
+                        "Authorization: Bearer " . $_SESSION["access_token"],
+                        "User-Agent: " . $config["useragent"]
+                    ), "https://".$_SESSION["institute_code"].".e-kreta.hu/ellenorzo/V3/Sajat/Feljegyzesek");
+                    foreach ($response as $item){
+                        echo "<tr>";
+                        echo "<td scope=\"row\">".$item["Datum"]."</td>";
+                        echo "<td>".$item["Tipus"]["Leiras"]."</td>";
+                        echo "<td>".$item["KeszitoTanarNeve"]."</td>";
+                        echo "<td>".$item["Cim"]."</td>";
+                        echo "<td>".$item["Tartalom"]."</td>";
+                        echo "</tr>";
+                    }
+                    ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     <div class="card module" id="exams" style="display: none">
         <div class="card-body">
-            <table class="table table-striped">
-                <thead>
-                <tr>
-                    <th scope="col">Bejelentés dátuma</th>
-                    <th scope="col">Dolgozat dátuma</th>
-                    <th scope="col">Tantárgy</th>
-                    <th scope="col">Tanár</th>
-                    <th scope="col">Téma</th>
-                    <th scope="col">Beszámoló módja</th>
-                </tr>
-                </thead>
-                <tbody>
-            <?php
-            $response = makerequest(Array(
-                    "Authorization: Bearer " . $_SESSION["access_token"],
-                    "User-Agent: " . $config["useragent"]
-            ), "https://".$_SESSION["institute_code"].".e-kreta.hu/ellenorzo/V3/Sajat/BejelentettSzamonkeresek?datumTol=null");
-            foreach ($response as $item){
-                echo "<tr>";
-                echo "<td scope=\"row\">".$item["BejelentesDatuma"]."</td>";
-                echo "<td>".$item["Datum"]."</td>";
-                echo "<td>".$item["TantargyNeve"]."</td>";
-                echo "<td>".$item["RogzitoTanarNeve"]."</td>";
-                echo "<td>".$item["Temaja"]."</td>";
-                echo "<td>".$item["Modja"]["Leiras"]."</td>";
-                echo "</tr>";
-            }
-            ?>
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                    <tr>
+                        <th scope="col">Bejelentés dátuma</th>
+                        <th scope="col">Dolgozat dátuma</th>
+                        <th scope="col">Tantárgy</th>
+                        <th scope="col">Tanár</th>
+                        <th scope="col">Téma</th>
+                        <th scope="col">Beszámoló módja</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <?php
+                    $response = makerequest(Array(
+                        "Authorization: Bearer " . $_SESSION["access_token"],
+                        "User-Agent: " . $config["useragent"]
+                    ), "https://".$_SESSION["institute_code"].".e-kreta.hu/ellenorzo/V3/Sajat/BejelentettSzamonkeresek?datumTol=null");
+                    foreach ($response as $item){
+                        echo "<tr>";
+                        echo "<td scope=\"row\">".$item["BejelentesDatuma"]."</td>";
+                        echo "<td>".$item["Datum"]."</td>";
+                        echo "<td>".$item["TantargyNeve"]."</td>";
+                        echo "<td>".$item["RogzitoTanarNeve"]."</td>";
+                        echo "<td>".$item["Temaja"]."</td>";
+                        echo "<td>".$item["Modja"]["Leiras"]."</td>";
+                        echo "</tr>";
+                    }
+                    ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     <div class="card module" id="absences" style="display: none">
         <div class="card-body">
-            This is some text within a card body. 5
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                    <tr>
+                        <th scope="col">Mulasztás dátuma</th>
+                        <th scope="col">Tantárgy</th>
+                        <th scope="col">Tanár</th>
+                        <th scope="col">Mulasztás tipusa</th>
+                        <th scope="col">Igazolás tipusa</th>
+                        <th scope="col">Állapot</th>
+                        <th scope="col">Késés (perc)</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <?php
+                    $response = makerequest(Array(
+                        "Authorization: Bearer " . $_SESSION["access_token"],
+                        "User-Agent: " . $config["useragent"]
+                    ), "https://".$_SESSION["institute_code"].".e-kreta.hu/ellenorzo/V3/Sajat/Mulasztasok?datumTol=null");
+                    foreach ($response as $item){
+                        echo "<tr>";
+                        echo "<td scope=\"row\">".$item["Datum"]."</td>";
+                        echo "<td>".$item["Tantargy"]["Nev"]."</td>";
+                        echo "<td>".$item["RogzitoTanarNeve"]."</td>";
+                        echo "<td>".$item["Mod"]["Leiras"]."</td>";
+                        echo "<td>".$item["IgazolasTipusa"]["Leiras"]."</td>";
+                        echo "<td>".$item["IgazolasAllapota"]."</td>";
+                        echo "<td>".$item["KesesPercben"]."</td>";
+                        echo "</tr>";
+                    }
+                    ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     <div class="card module" id="debug" style="display: none">
@@ -123,7 +232,8 @@ function makerequest($headers, $url){
             <p><b>Login stat.: </b> <?php echo $_SESSION["login-status"];?></p>
             <p><b>Intézmény: </b> <?php echo $_SESSION["institute_code"];?></p>
             <p><b>User: </b> <?php echo $_SESSION["user"];?></p>
-            <p><b>Token: </b> <?php echo $_SESSION["access_token"];?></p>
+            <p><b>Access Token: </b> <?php echo $_SESSION["access_token"];?></p>
+            <p><b>Refresh Token: </b> <?php echo $_SESSION["refresh_token"];?></p>
         </div>
     </div>
 </div>
@@ -144,6 +254,10 @@ function makerequest($headers, $url){
             localStorage.setItem("last", "")
         }
     }
+    hideshow(localStorage.getItem("last"));
+    window.setTimeout(function () {
+        window.location.replace("actions/refresh.php?inst=<?php echo $_SESSION["institute_code"];?>&reftok=<?php echo $_SESSION["refresh_token"];?>");
+    }, 1700000);
 </script>
 </body>
 </html>

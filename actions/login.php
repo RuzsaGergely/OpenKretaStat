@@ -19,6 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
 
     $decoded = json_decode($response, true);
 
+    curl_close($curl_h);
     if(!empty($decoded["access_token"])){
         $_SESSION["login-status"] = true;
         $_SESSION["access_token"] = $decoded["access_token"];
