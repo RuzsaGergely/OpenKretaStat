@@ -49,6 +49,7 @@ function makerequest($headers, $url){
             <a class="nav-link" href="javascript:hideshow('notes')">Feljegyzések</a>
             <a class="nav-link" href="javascript:hideshow('exams')">Számonkérések</a>
             <a class="nav-link" href="javascript:hideshow('absences')">Hiányzások</a>
+            <a class="nav-link" href="javascript:hideshow('profile')">Adatlap</a>
             <a class="nav-link" href="javascript:hideshow('debug')">Debug</a>
         </div>
         <ul class="navbar-nav ml-auto">
@@ -101,12 +102,49 @@ function makerequest($headers, $url){
             foreach ($response as $item){
                 array_push($tantargyak[getIndex($tantargyak, $item["Tantargy"]["Nev"])], Array(
                     "jegy" => $item["SzamErtek"],
-                    "suly" => $item["SulySzazalekErteke"]
+                    "suly" => $item["SulySzazalekErteke"],
+                    "tema" => $item["Tema"],
+                    "beirva" => $item["KeszitesDatuma"],
+                    "targynap" => $item["RogzitesDatuma"]
                 ));
             }
-
-            print_r($tantargyak);
             ?>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th scope="col">Tantárgy</th>
+                        <th scope="col">Jegy</th>
+                        <th scope="col">Súly</th>
+                        <th scope="col">Téma</th>
+                        <th scope="col">Beírva</th>
+                        <th scope="col">Tárgynap</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <?php
+                    foreach ($tantargyak as $item){
+                        echo "<tr>";
+                        echo "<td scope=\"row\" colspan='4'>".$item["tantargy"]."</td>";
+                        echo "</tr>";
+                        foreach (array_reverse($item) as $subitem){
+                            if(is_numeric($subitem["jegy"]) || $subitem["jegy"] == "-"){
+                                echo "<tr><td>&nbsp;</td>";
+                                echo "<td>" . $subitem["jegy"] . "</td>";
+                                echo "<td>" . $subitem["suly"] . "%</td>";
+                                echo "<td>" . $subitem["tema"] . "</td>";
+                                echo "<td>" . $subitem["beirva"] . "</td>";
+                                echo "<td>" . $subitem["targynap"] . "</td>";
+                                echo "</tr>";
+                            }
+
+                        }
+                    }
+                    ?>
+                    </tbody>
+                </table>
+            </div>
+
         </div>
     </div>
     <div class="card module" id="stats" style="display: none">
@@ -225,6 +263,17 @@ function makerequest($headers, $url){
                     </tbody>
                 </table>
             </div>
+        </div>
+    </div>
+    <div class="card module" id="profile" style="display: none">
+        <div class="card-body">
+            <?php
+            $response = makerequest(Array(
+                "Authorization: Bearer " . $_SESSION["access_token"],
+                "User-Agent: " . $config["useragent"]
+            ), "https://".$_SESSION["institute_code"].".e-kreta.hu/ellenorzo/V3/Sajat/Tanulo");
+            print_r($response);
+            ?>
         </div>
     </div>
     <div class="card module" id="debug" style="display: none">
