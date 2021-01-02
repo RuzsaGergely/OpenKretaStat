@@ -267,13 +267,33 @@ function makerequest($headers, $url){
     </div>
     <div class="card module" id="profile" style="display: none">
         <div class="card-body">
-            <?php
-            $response = makerequest(Array(
-                "Authorization: Bearer " . $_SESSION["access_token"],
-                "User-Agent: " . $config["useragent"]
-            ), "https://".$_SESSION["institute_code"].".e-kreta.hu/ellenorzo/V3/Sajat/Tanulo");
-            print_r($response);
-            ?>
+            <div class="table-responsive">
+                    <?php
+                    $response = makerequest(Array(
+                        "Authorization: Bearer " . $_SESSION["access_token"],
+                        "User-Agent: " . $config["useragent"]
+                    ), "https://".$_SESSION["institute_code"].".e-kreta.hu/ellenorzo/V3/Sajat/TanuloAdatlap");
+
+                    $table = table_cell($response);
+                    echo $table;
+
+                    // Forrás: https://stackoverflow.com/a/30008824
+                    function table_cell($data) {
+                        $return = "<table class='table table-striped'>";
+                        foreach ($data as $key => $value) {
+                            $return .= "<tr><td>$key</td><td>";
+                            if (is_array($value)) {
+                                $return .= table_cell($value);
+                            } else {
+                                $return .= $value;
+                            }
+                            $return .= "</td><tr>";
+                        }
+                        $return .= "</tr></table>";
+                        return($return);
+                    }
+                    ?>
+            </div>
         </div>
     </div>
     <div class="card module" id="debug" style="display: none">
