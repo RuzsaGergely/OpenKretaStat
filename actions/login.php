@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
     );
     curl_setopt($curl_h, CURLOPT_ENCODING, 'UTF-8');
     curl_setopt($curl_h, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($curl_h, CURLOPT_POSTFIELDS, "userName=".$_POST["username"]."&password=".$_POST["password"]."&institute_code=".$_POST["school"]."&grant_type=password&client_id=kreta-ellenorzo-mobile");
+    curl_setopt($curl_h, CURLOPT_POSTFIELDS, "userName=".urlencode($_POST["username"])."&password=".urlencode($_POST["password"])."&institute_code=".urlencode($_POST["school"])."&grant_type=password&client_id=kreta-ellenorzo-mobile");
 
     $response = curl_exec($curl_h);
 

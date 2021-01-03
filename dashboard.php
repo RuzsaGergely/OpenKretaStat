@@ -22,6 +22,47 @@ function makerequest($headers, $url){
     curl_close($curl_h);
     return $decoded;
 }
+
+// Forrás: https://stackoverflow.com/a/30008824
+function table_cell($data) {
+    $return = "<table class='table table-striped'>";
+    foreach ($data as $key => $value) {
+        $return .= "<tr><td>$key</td><td>";
+        if (is_array($value)) {
+            $return .= table_cell($value);
+        } else {
+            $return .= $value;
+        }
+        $return .= "</td><tr>";
+    }
+    $return .= "</tr></table>";
+    return($return);
+}
+
+$curl_h = curl_init('https://idp.e-kreta.hu/connect/token');
+
+curl_setopt($curl_h, CURLOPT_POST, 1);
+curl_setopt($curl_h, CURLOPT_HTTPHEADER,
+    array(
+        'User-Agent: ' . $config["useragent"],
+        'Content-Type: application/x-www-form-urlencoded'
+    )
+);
+curl_setopt($curl_h, CURLOPT_ENCODING, 'UTF-8');
+curl_setopt($curl_h, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($curl_h, CURLOPT_POSTFIELDS, "institute_code=". $_SESSION["institute_code"] ."&refresh_token=". $_SESSION["refresh_token"] ."&grant_type=refresh_token&client_id=kreta-ellenorzo-mobile");
+
+$response = curl_exec($curl_h);
+$decoded = json_decode($response, true);
+curl_close($curl_h);
+
+$_SESSION["access_token"] = $decoded["access_token"];
+$_SESSION["refresh_token"] = $decoded["refresh_token"];
+
+// Források
+// https://github.com/bczsalba/ekreta-docs-v3
+// https://github.com/filc/naplo/blob/3023c78a6785c9b2e000e2aaed6f450fddd33f34/lib/kreta/client.dart
+// https://github.com/filc/naplo/blob/3023c78a6785c9b2e000e2aaed6f450fddd33f34/lib/kreta/api.dart
 ?>
 
 <!doctype html>
@@ -45,8 +86,10 @@ function makerequest($headers, $url){
         <div class="navbar-nav">
             <a class="nav-link" href="javascript:hideshow('grades')">Jegyek</a>
             <a class="nav-link" href="javascript:hideshow('stats')">Statisztika</a>
+            <a class="nav-link" href="javascript:hideshow('groups')">Csoportok</a>
             <a class="nav-link" href="javascript:hideshow('messages')">Üzenetek</a>
             <a class="nav-link" href="javascript:hideshow('notes')">Feljegyzések</a>
+            <a class="nav-link" href="javascript:hideshow('events')">Faliújság</a>
             <a class="nav-link" href="javascript:hideshow('exams')">Számonkérések</a>
             <a class="nav-link" href="javascript:hideshow('absences')">Hiányzások</a>
             <a class="nav-link" href="javascript:hideshow('profile')">Adatlap</a>
@@ -147,14 +190,92 @@ function makerequest($headers, $url){
 
         </div>
     </div>
+    <div class="card module" id="events" style="display: none">
+        <div class="card-body">
+            <?php
+            $response = makerequest(Array(
+                "Authorization: Bearer " . $_SESSION["access_token"],
+                "User-Agent: " . $config["useragent"]
+            ), "https://".$_SESSION["institute_code"].".e-kreta.hu/ellenorzo/V3/Sajat/FaliujsagElemek");
+            if(empty($response)){
+                echo "Üres a faliújság";
+            } else {
+                $table = table_cell($response);
+                echo $table;
+            }
+            ?>
+        </div>
+    </div>
+    <div class="card module" id="groups" style="display: none">
+        <div class="card-body">
+            <?php
+            $csoportok_request = makerequest(Array(
+                "Authorization: Bearer " . $_SESSION["access_token"],
+                "User-Agent: " . $config["useragent"]
+            ), "https://".$_SESSION["institute_code"].".e-kreta.hu/ellenorzo/V3/Sajat/OsztalyCsoportok");
+            $table = table_cell($csoportok_request);
+            echo $table;
+            ?>
+        </div>
+    </div>
     <div class="card module" id="stats" style="display: none">
         <div class="card-body">
-            This is some text within a card body. 2
+            <?php
+            $response = makerequest(Array(
+                "Authorization: Bearer " . $_SESSION["access_token"],
+                "User-Agent: " . $config["useragent"]
+            ), "https://".$_SESSION["institute_code"].".e-kreta.hu/ellenorzo/V3/Sajat/Ertekelesek/Atlagok/OsztalyAtlagok?oktatasiNevelesiFeladatUid=" . $csoportok_request[0]["OktatasNevelesiFeladat"]["Uid"]);
+
+            $tanulo_all = 0;
+            $tantargy_counter = 0;
+            foreach ($response as $item){
+                $tanulo_all = $tanulo_all + $item["TanuloAtlag"];
+                $tantargy_counter += 1;
+            }
+            echo "Az összátlagod: " . ($tanulo_all/$tantargy_counter)."<br>";
+
+            $tanulo_all = 0;
+            $tantargy_counter = 0;
+            foreach ($response as $item){
+                $tanulo_all = $tanulo_all + $item["OsztalyCsoportAtlag"];
+                $tantargy_counter += 1;
+            }
+            echo "Az osztály összátlaga: " . ($tanulo_all/$tantargy_counter);
+            $table = table_cell($response);
+            echo $table;
+            ?>
         </div>
     </div>
     <div class="card module" id="messages" style="display: none">
         <div class="card-body">
-            This is some text within a card body. 3
+            <?php
+            $response = makerequest(Array(
+                "Authorization: Bearer " . $_SESSION["access_token"],
+                "User-Agent: " . $config["useragent"]
+            ), "https://eugyintezes.e-kreta.hu/api/v1/kommunikacio/postaladaelemek/beerkezett");
+
+            function table_cell_spec($data) {
+                $return = "<table class='table table-striped'>";
+                foreach ($data as $key => $value) {
+                    $return .= "<tr><td>$key</td><td>";
+                    if (is_array($value)) {
+                        $return .= table_cell_spec($value);
+                    } else {
+                        if($key == "azonosito"){
+                            $return .= "<a href='uzenetolvaso.php?azon=" . $value . "' target='_blank'>". $value . "</a>";
+                        } else {
+                            $return .= $value;
+                        }
+                    }
+                    $return .= "</td><tr>";
+                }
+                $return .= "</tr></table>";
+                return($return);
+            }
+
+            $table = table_cell_spec($response);
+            echo $table;
+            ?>
         </div>
     </div>
     <div class="card module" id="notes" style="display: none">
@@ -276,22 +397,6 @@ function makerequest($headers, $url){
 
                     $table = table_cell($response);
                     echo $table;
-
-                    // Forrás: https://stackoverflow.com/a/30008824
-                    function table_cell($data) {
-                        $return = "<table class='table table-striped'>";
-                        foreach ($data as $key => $value) {
-                            $return .= "<tr><td>$key</td><td>";
-                            if (is_array($value)) {
-                                $return .= table_cell($value);
-                            } else {
-                                $return .= $value;
-                            }
-                            $return .= "</td><tr>";
-                        }
-                        $return .= "</tr></table>";
-                        return($return);
-                    }
                     ?>
             </div>
         </div>
