@@ -1,4 +1,9 @@
 <?php
+// Források
+// https://github.com/bczsalba/ekreta-docs-v3
+// https://github.com/filc/naplo/blob/3023c78a6785c9b2e000e2aaed6f450fddd33f34/lib/kreta/client.dart
+// https://github.com/filc/naplo/blob/3023c78a6785c9b2e000e2aaed6f450fddd33f34/lib/kreta/api.dart
+
 session_start();
 
 if (!isset($_SESSION["login-status"]) || !$_SESSION["login-status"]) {
@@ -18,6 +23,7 @@ function makerequest($headers, $url){
     curl_setopt($curl_h, CURLOPT_RETURNTRANSFER, true);
 
     $response = curl_exec($curl_h);
+    //file_put_contents("reqs/file_".rand(2003,65535).".json", $response);
     $decoded = json_decode($response, true);
     curl_close($curl_h);
     return $decoded;
@@ -37,6 +43,18 @@ function table_cell($data) {
     }
     $return .= "</tr></table>";
     return($return);
+}
+
+function average($response, $search){
+    $all = 0;
+    $counter = 0;
+    foreach ($response as $item){
+        if(!empty($item[$search])) {
+            $all = $all + $item[$search];
+            $counter += 1;
+        }
+    }
+    return ($all/$counter);
 }
 
 $curl_h = curl_init('https://idp.e-kreta.hu/connect/token');
@@ -59,10 +77,13 @@ curl_close($curl_h);
 $_SESSION["access_token"] = $decoded["access_token"];
 $_SESSION["refresh_token"] = $decoded["refresh_token"];
 
-// Források
-// https://github.com/bczsalba/ekreta-docs-v3
-// https://github.com/filc/naplo/blob/3023c78a6785c9b2e000e2aaed6f450fddd33f34/lib/kreta/client.dart
-// https://github.com/filc/naplo/blob/3023c78a6785c9b2e000e2aaed6f450fddd33f34/lib/kreta/api.dart
+$color_codes = Array(
+    50=>"gray",
+    100=>"blue",
+    150=>"darkgreen",
+    200=>"red"
+);
+
 ?>
 
 <!doctype html>
@@ -112,7 +133,6 @@ $_SESSION["refresh_token"] = $decoded["refresh_token"];
                 "User-Agent: " . $config["useragent"]
             ), "https://".$_SESSION["institute_code"].".e-kreta.hu/ellenorzo/V3/Sajat/Ertekelesek");
 
-            // Igor... ha nem találsz vénát... csináljá'!
             function arrayCheck($array, $search){
                 $van = false;
                 foreach ($array as $item){
@@ -147,8 +167,12 @@ $_SESSION["refresh_token"] = $decoded["refresh_token"];
                     "jegy" => $item["SzamErtek"],
                     "suly" => $item["SulySzazalekErteke"],
                     "tema" => $item["Tema"],
-                    "beirva" => $item["KeszitesDatuma"],
-                    "targynap" => $item["RogzitesDatuma"]
+                    "beirva" => date("Y. F. d. H:i:s", strtotime($item["KeszitesDatuma"])),
+                    "targynap" => date("Y. F. d. H:i:s", strtotime($item["RogzitesDatuma"])),
+                    "tipus" => Array(
+                        $item["Tipus"]["Uid"],
+                        $item["Tipus"]["Leiras"]
+                    )
                 ));
             }
             ?>
@@ -160,6 +184,7 @@ $_SESSION["refresh_token"] = $decoded["refresh_token"];
                         <th scope="col">Jegy</th>
                         <th scope="col">Súly</th>
                         <th scope="col">Téma</th>
+                        <th scope="col">Tipus</th>
                         <th scope="col">Beírva</th>
                         <th scope="col">Tárgynap</th>
                     </tr>
@@ -168,19 +193,19 @@ $_SESSION["refresh_token"] = $decoded["refresh_token"];
                     <?php
                     foreach ($tantargyak as $item){
                         echo "<tr>";
-                        echo "<td scope=\"row\" colspan='4'>".$item["tantargy"]."</td>";
+                        echo "<td scope=\"row\" colspan='6'><b>".$item["tantargy"]."</b></td>";
                         echo "</tr>";
                         foreach (array_reverse($item) as $subitem){
                             if(is_numeric($subitem["jegy"]) || $subitem["jegy"] == "-"){
                                 echo "<tr><td>&nbsp;</td>";
-                                echo "<td>" . $subitem["jegy"] . "</td>";
+                                echo "<td style='color:".$color_codes[$subitem["suly"]]."'>" . $subitem["jegy"] . "</td>";
                                 echo "<td>" . $subitem["suly"] . "%</td>";
                                 echo "<td>" . $subitem["tema"] . "</td>";
+                                echo "<td>" . $subitem["tipus"][1] . "</td>";
                                 echo "<td>" . $subitem["beirva"] . "</td>";
                                 echo "<td>" . $subitem["targynap"] . "</td>";
                                 echo "</tr>";
                             }
-
                         }
                     }
                     ?>
@@ -197,6 +222,7 @@ $_SESSION["refresh_token"] = $decoded["refresh_token"];
                 "Authorization: Bearer " . $_SESSION["access_token"],
                 "User-Agent: " . $config["useragent"]
             ), "https://".$_SESSION["institute_code"].".e-kreta.hu/ellenorzo/V3/Sajat/FaliujsagElemek");
+
             if(empty($response)){
                 echo "Üres a faliújság";
             } else {
@@ -213,6 +239,7 @@ $_SESSION["refresh_token"] = $decoded["refresh_token"];
                 "Authorization: Bearer " . $_SESSION["access_token"],
                 "User-Agent: " . $config["useragent"]
             ), "https://".$_SESSION["institute_code"].".e-kreta.hu/ellenorzo/V3/Sajat/OsztalyCsoportok");
+
             $table = table_cell($csoportok_request);
             echo $table;
             ?>
@@ -220,62 +247,86 @@ $_SESSION["refresh_token"] = $decoded["refresh_token"];
     </div>
     <div class="card module" id="stats" style="display: none">
         <div class="card-body">
-            <?php
-            $response = makerequest(Array(
-                "Authorization: Bearer " . $_SESSION["access_token"],
-                "User-Agent: " . $config["useragent"]
-            ), "https://".$_SESSION["institute_code"].".e-kreta.hu/ellenorzo/V3/Sajat/Ertekelesek/Atlagok/OsztalyAtlagok?oktatasiNevelesiFeladatUid=" . $csoportok_request[0]["OktatasNevelesiFeladat"]["Uid"]);
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Tantárgy</th>
+                        <th scope="col">Tanulói átlag</th>
+                        <th scope="col">Csoportátlag</th>
+                        <th scope="col">Átlagtól való eltérés</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <?php
+                    $response = makerequest(Array(
+                        "Authorization: Bearer " . $_SESSION["access_token"],
+                        "User-Agent: " . $config["useragent"]
+                    ), "https://".$_SESSION["institute_code"].".e-kreta.hu/ellenorzo/V3/Sajat/Ertekelesek/Atlagok/OsztalyAtlagok?oktatasiNevelesiFeladatUid=" . $csoportok_request[0]["OktatasNevelesiFeladat"]["Uid"]);
 
-            $tanulo_all = 0;
-            $tantargy_counter = 0;
-            foreach ($response as $item){
-                $tanulo_all = $tanulo_all + $item["TanuloAtlag"];
-                $tantargy_counter += 1;
-            }
-            echo "Az összátlagod: " . ($tanulo_all/$tantargy_counter)."<br>";
-
-            $tanulo_all = 0;
-            $tantargy_counter = 0;
-            foreach ($response as $item){
-                $tanulo_all = $tanulo_all + $item["OsztalyCsoportAtlag"];
-                $tantargy_counter += 1;
-            }
-            echo "Az osztály összátlaga: " . ($tanulo_all/$tantargy_counter);
-            $table = table_cell($response);
-            echo $table;
-            ?>
+                    $id = 0;
+                    foreach ($response as $item){
+                        echo "<tr>";
+                        echo "<td>" . $id . "</td>";
+                        echo "<td>" . $item["Tantargy"]["Nev"] . "</td>";
+                        echo "<td>" . $item["TanuloAtlag"] . "</td>";
+                        echo "<td>" . $item["OsztalyCsoportAtlag"] . "</td>";
+                        if($item["OsztalyCsoportAtlagtolValoElteres"]>0) {
+                            echo "<td>+" . $item["OsztalyCsoportAtlagtolValoElteres"] . "</td>";
+                        } else {
+                            echo "<td>" . $item["OsztalyCsoportAtlagtolValoElteres"] . "</td>";
+                        }
+                        echo "</tr>";
+                        $id += 1;
+                    }
+                    echo "<tr><td colspan='2'>&nbsp;</td><td>".round(average($response, "TanuloAtlag"),2)."</td><td>".round(average($response, "OsztalyCsoportAtlag"),2)."</td><td>&nbsp</td></tr>"
+                    ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     <div class="card module" id="messages" style="display: none">
         <div class="card-body">
-            <?php
-            $response = makerequest(Array(
-                "Authorization: Bearer " . $_SESSION["access_token"],
-                "User-Agent: " . $config["useragent"]
-            ), "https://eugyintezes.e-kreta.hu/api/v1/kommunikacio/postaladaelemek/beerkezett");
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th scope="col">Üzenet azon.</th>
+                        <th scope="col">Azonosító</th>
+                        <th scope="col">Tárgy</th>
+                        <th scope="col">Feladó</th>
+                        <th scope="col">Elolvasva?</th>
+                        <th scope="col">Dátum</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <?php
+                    $response = makerequest(Array(
+                        "Authorization: Bearer " . $_SESSION["access_token"],
+                        "User-Agent: " . $config["useragent"]
+                    ), "https://eugyintezes.e-kreta.hu/api/v1/kommunikacio/postaladaelemek/beerkezett");
 
-            function table_cell_spec($data) {
-                $return = "<table class='table table-striped'>";
-                foreach ($data as $key => $value) {
-                    $return .= "<tr><td>$key</td><td>";
-                    if (is_array($value)) {
-                        $return .= table_cell_spec($value);
-                    } else {
-                        if($key == "azonosito"){
-                            $return .= "<a href='uzenetolvaso.php?azon=" . $value . "' target='_blank'>". $value . "</a>";
+                    foreach ($response as $item){
+                        echo "<tr>";
+                        echo "<td>" . $item["uzenetAzonosito"] . "</td>";
+                        echo "<td><a href='uzenetolvaso.php?azon=" . $item["azonosito"] . "' target='_blank'>".$item["azonosito"]."</a></td>";
+                        echo "<td>" . $item["uzenetTargy"] . "</td>";
+                        echo "<td>" . $item["uzenetFeladoNev"] . "</td>";
+                        if($item["isElolvasva"] == 1) {
+                            echo "<td>Igen</td>";
                         } else {
-                            $return .= $value;
+                            echo "<td>Nem</td>";
                         }
-                    }
-                    $return .= "</td><tr>";
-                }
-                $return .= "</tr></table>";
-                return($return);
-            }
+                        echo "<td>" . date("Y. F. d. H:i:s", strtotime($item["uzenetKuldesDatum"])) . "</td>";
 
-            $table = table_cell_spec($response);
-            echo $table;
-            ?>
+                        echo "</tr>";
+                    }
+                    ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     <div class="card module" id="notes" style="display: none">
@@ -297,9 +348,10 @@ $_SESSION["refresh_token"] = $decoded["refresh_token"];
                         "Authorization: Bearer " . $_SESSION["access_token"],
                         "User-Agent: " . $config["useragent"]
                     ), "https://".$_SESSION["institute_code"].".e-kreta.hu/ellenorzo/V3/Sajat/Feljegyzesek");
+
                     foreach ($response as $item){
                         echo "<tr>";
-                        echo "<td scope=\"row\">".$item["Datum"]."</td>";
+                        echo "<td scope=\"row\">".date("Y. F. d. H:i:s", strtotime($item["Datum"]))."</td>";
                         echo "<td>".$item["Tipus"]["Leiras"]."</td>";
                         echo "<td>".$item["KeszitoTanarNeve"]."</td>";
                         echo "<td>".$item["Cim"]."</td>";
@@ -332,10 +384,11 @@ $_SESSION["refresh_token"] = $decoded["refresh_token"];
                         "Authorization: Bearer " . $_SESSION["access_token"],
                         "User-Agent: " . $config["useragent"]
                     ), "https://".$_SESSION["institute_code"].".e-kreta.hu/ellenorzo/V3/Sajat/BejelentettSzamonkeresek?datumTol=null");
+
                     foreach ($response as $item){
                         echo "<tr>";
-                        echo "<td scope=\"row\">".$item["BejelentesDatuma"]."</td>";
-                        echo "<td>".$item["Datum"]."</td>";
+                        echo "<td scope=\"row\">".date("Y. F. d. H:i:s", strtotime($item["BejelentesDatuma"]))."</td>";
+                        echo "<td>".date("Y. M. d. H:i:s", strtotime($item["Datum"]))."</td>";
                         echo "<td>".$item["TantargyNeve"]."</td>";
                         echo "<td>".$item["RogzitoTanarNeve"]."</td>";
                         echo "<td>".$item["Temaja"]."</td>";
@@ -369,9 +422,10 @@ $_SESSION["refresh_token"] = $decoded["refresh_token"];
                         "Authorization: Bearer " . $_SESSION["access_token"],
                         "User-Agent: " . $config["useragent"]
                     ), "https://".$_SESSION["institute_code"].".e-kreta.hu/ellenorzo/V3/Sajat/Mulasztasok?datumTol=null");
+
                     foreach ($response as $item){
                         echo "<tr>";
-                        echo "<td scope=\"row\">".$item["Datum"]."</td>";
+                        echo "<td scope=\"row\">".date("Y. F. d. H:i:s", strtotime($item["Datum"]))."</td>";
                         echo "<td>".$item["Tantargy"]["Nev"]."</td>";
                         echo "<td>".$item["RogzitoTanarNeve"]."</td>";
                         echo "<td>".$item["Mod"]["Leiras"]."</td>";
