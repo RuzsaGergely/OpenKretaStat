@@ -98,7 +98,7 @@ $color_codes = Array(
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-light bg-light">
+<nav class="navbar sticky-top navbar-expand-lg navbar-light bg-light">
     <a class="navbar-brand" href="#">OpenKretaStat</a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -115,6 +115,7 @@ $color_codes = Array(
             <a class="nav-link" href="javascript:hideshow('absences')">Hiányzások</a>
             <a class="nav-link" href="javascript:hideshow('profile')">Adatlap</a>
             <a class="nav-link" href="javascript:hideshow('debug')">Debug</a>
+            <a class="nav-link" href="javascript:hideshow('api')">API</a>
         </div>
         <ul class="navbar-nav ml-auto">
             <div class="nav-item">
@@ -125,7 +126,7 @@ $color_codes = Array(
     </div>
 </nav>
 <div class="contentdiv">
-    <div class="card module" id="grades">
+    <div class="card module" id="grades" style="display: none">
         <div class="card-body">
             <?php
             $response = makerequest(Array(
@@ -177,7 +178,7 @@ $color_codes = Array(
             }
             ?>
             <div class="table-responsive">
-                <table class="table">
+                <table class="table table-striped">
                     <thead>
                     <tr>
                         <th scope="col">Tantárgy</th>
@@ -193,7 +194,7 @@ $color_codes = Array(
                     <?php
                     foreach ($tantargyak as $item){
                         echo "<tr>";
-                        echo "<td scope=\"row\" colspan='6'><b>".$item["tantargy"]."</b></td>";
+                        echo "<td scope=\"row\" colspan='7'><b>".$item["tantargy"]."</b></td>";
                         echo "</tr>";
                         foreach (array_reverse($item) as $subitem){
                             if(is_numeric($subitem["jegy"]) || $subitem["jegy"] == "-"){
@@ -248,7 +249,7 @@ $color_codes = Array(
     <div class="card module" id="stats" style="display: none">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table">
+                <table class="table table-striped">
                     <thead>
                     <tr>
                         <th scope="col">#</th>
@@ -290,7 +291,7 @@ $color_codes = Array(
     <div class="card module" id="messages" style="display: none">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table">
+                <table class="table table-striped">
                     <thead>
                     <tr>
                         <th scope="col">Üzenet azon.</th>
@@ -464,6 +465,11 @@ $color_codes = Array(
             <p><b>Refresh Token: </b> <?php echo $_SESSION["refresh_token"];?></p>
         </div>
     </div>
+    <div class="card module" id="api" style="display: none">
+        <div class="card-body">
+            <b>Ide kerül majd az API dokumentáció</b>
+        </div>
+    </div>
 </div>
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
@@ -481,11 +487,22 @@ $color_codes = Array(
             x.style.display = "none";
             localStorage.setItem("last", "")
         }
+
+        if ($(window).width() <= 800 && $('.navbar-collapse').is('.collapse:not(.show)') == false) {
+            $('.navbar-collapse').collapse('toggle');
+        }
     }
-    hideshow(localStorage.getItem("last"));
+    if(localStorage.hasOwnProperty("last") === false) {
+        hideshow('grades');
+    } else {
+        if(localStorage.getItem("last") !== ""){
+            hideshow(localStorage.getItem("last"));
+        }
+    }
     window.setTimeout(function () {
         window.location.replace("actions/refresh.php?inst=<?php echo $_SESSION["institute_code"];?>&reftok=<?php echo $_SESSION["refresh_token"];?>");
     }, 1700000);
+
 </script>
 </body>
 </html>
