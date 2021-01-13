@@ -31,7 +31,7 @@ function makerequest($headers, $url){
 
 // Forrás: https://stackoverflow.com/a/30008824
 function table_cell($data) {
-    $return = "<table class='table table-striped'>";
+    $return = "<table class='table'>";
     foreach ($data as $key => $value) {
         $return .= "<tr><td>$key</td><td>";
         if (is_array($value)) {
@@ -173,7 +173,8 @@ $color_codes = Array(
                     "tipus" => Array(
                         $item["Tipus"]["Uid"],
                         $item["Tipus"]["Leiras"]
-                    )
+                    ),
+                    "tanar" => $item["ErtekeloTanarNeve"]
                 ));
             }
             ?>
@@ -185,7 +186,7 @@ $color_codes = Array(
                         <th scope="col">Jegy</th>
                         <th scope="col">Súly</th>
                         <th scope="col">Téma</th>
-                        <th scope="col">Tipus</th>
+                        <th scope="col">Tanár</th>
                         <th scope="col">Beírva</th>
                         <th scope="col">Tárgynap</th>
                     </tr>
@@ -194,15 +195,15 @@ $color_codes = Array(
                     <?php
                     foreach ($tantargyak as $item){
                         echo "<tr>";
-                        echo "<td scope=\"row\" colspan='7'><b>".$item["tantargy"]."</b></td>";
+                        echo "<td scope=\"row\" colspan='8'><b>".$item["tantargy"]."</b></td>";
                         echo "</tr>";
                         foreach (array_reverse($item) as $subitem){
                             if(is_numeric($subitem["jegy"]) || $subitem["jegy"] == "-"){
-                                echo "<tr><td>&nbsp;</td>";
+                                echo "<tr data-toggle=\"tooltip\" data-placement=\"top\" title='".$subitem["tipus"][1]."'><td>&nbsp;</td>";
                                 echo "<td style='color:".$color_codes[$subitem["suly"]]."'>" . $subitem["jegy"] . "</td>";
                                 echo "<td>" . $subitem["suly"] . "%</td>";
                                 echo "<td>" . $subitem["tema"] . "</td>";
-                                echo "<td>" . $subitem["tipus"][1] . "</td>";
+                                echo "<td>" . $subitem["tanar"] . "</td>";
                                 echo "<td>" . $subitem["beirva"] . "</td>";
                                 echo "<td>" . $subitem["targynap"] . "</td>";
                                 echo "</tr>";
@@ -235,15 +236,37 @@ $color_codes = Array(
     </div>
     <div class="card module" id="groups" style="display: none">
         <div class="card-body">
-            <?php
-            $csoportok_request = makerequest(Array(
-                "Authorization: Bearer " . $_SESSION["access_token"],
-                "User-Agent: " . $config["useragent"]
-            ), "https://".$_SESSION["institute_code"].".e-kreta.hu/ellenorzo/V3/Sajat/OsztalyCsoportok");
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                    <tr>
+                        <th scope="col">Uid</th>
+                        <th scope="col">Név</th>
+                        <th scope="col">Oktatás-Nevelési Feladat</th>
+                        <th scope="col">Tipus</th>
+                        <th scope="col">Aktív?</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <?php
+                    $csoportok_request = makerequest(Array(
+                        "Authorization: Bearer " . $_SESSION["access_token"],
+                        "User-Agent: " . $config["useragent"]
+                    ), "https://".$_SESSION["institute_code"].".e-kreta.hu/ellenorzo/V3/Sajat/OsztalyCsoportok");
 
-            $table = table_cell($csoportok_request);
-            echo $table;
-            ?>
+                    foreach ($csoportok_request as $item){
+                        echo "<tr>";
+                        echo "<td>".$item["Uid"]."</td>";
+                        echo "<td>".$item["Nev"]."</td>";
+                        echo "<td>".$item["OktatasNevelesiFeladat"]["Uid"]."</td>";
+                        echo "<td>".$item["Tipus"]."</td>";
+                        echo "<td>".$item["IsAktiv"]."</td>";
+                        echo "</tr>";
+                    }
+                    ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     <div class="card module" id="stats" style="display: none">
@@ -476,16 +499,18 @@ $color_codes = Array(
 <script>
     function hideshow(element) {
         var x = document.getElementById(element);
-        if (x.style.display === "none") {
-            var divsToHide = document.getElementsByClassName("module"); //divsToHide is an array
-            for (var i = 0; i < divsToHide.length; i++) {
-                divsToHide[i].style.display = "none";
+        if(x.style.display != "block"){
+            if (x.style.display === "none") {
+                var divsToHide = document.getElementsByClassName("module"); //divsToHide is an array
+                for (var i = 0; i < divsToHide.length; i++) {
+                    divsToHide[i].style.display = "none";
+                }
+                x.style.display = "block";
+                localStorage.setItem("last", element)
+            } else {
+                x.style.display = "none";
+                localStorage.setItem("last", "")
             }
-            x.style.display = "block";
-            localStorage.setItem("last", element)
-        } else {
-            x.style.display = "none";
-            localStorage.setItem("last", "")
         }
 
         if ($(window).width() <= 800 && $('.navbar-collapse').is('.collapse:not(.show)') == false) {

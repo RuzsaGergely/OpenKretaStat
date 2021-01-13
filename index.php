@@ -29,6 +29,7 @@ $decoded = json_decode($response, true);
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>OpenKretaStat - Bejelentkezés</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/css/bootstrap-select.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -45,11 +46,10 @@ $decoded = json_decode($response, true);
         </div>
         <div class="form-group">
             <label for="school">Iskola</label>
-            <select class="form-control" id="school" name="school">
+            <select class="form-control selectpicker" data-live-search="true" id="school" name="school">
                 <?php
                 foreach ($decoded as $item){
 
-                    // Bocsi, fanboy vagyok. :P
                     if($item["instituteCode"] == "bmszc-neumann"){
                         echo "<option value=\"" . $item["instituteCode"] . "\" selected>" . $item["instituteCode"] . "</option>";
                     } else {
@@ -67,5 +67,7 @@ $decoded = json_decode($response, true);
 
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/js/bootstrap-select.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/js/i18n/defaults-hu_HU.min.js"></script>
 </body>
 </html>
