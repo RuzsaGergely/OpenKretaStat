@@ -57,6 +57,18 @@ function average($response, $search){
     return ($all/$counter);
 }
 
+function gradeAverage($input){
+    $dividend = 0;
+    $divisor = 0;
+
+    foreach($input as $item){
+        $dividend += ($item[0] * $item[1]);
+        $divisor += $item[1];
+    }
+
+    return $dividend / $divisor;
+}
+
 $curl_h = curl_init('https://idp.e-kreta.hu/connect/token');
 
 curl_setopt($curl_h, CURLOPT_POST, 1);
@@ -154,6 +166,7 @@ $color_codes = Array(
             }
 
             $tantargyak = Array();
+            $osszes_jegy = Array();
 
             foreach ($response as $item){
                 if(!arrayCheck($tantargyak, $item["Tantargy"]["Nev"])){
@@ -175,6 +188,10 @@ $color_codes = Array(
                         $item["Tipus"]["Leiras"]
                     ),
                     "tanar" => $item["ErtekeloTanarNeve"]
+                ));
+                array_push($osszes_jegy, Array(
+                    $item["SzamErtek"],
+                    $item["SulySzazalekErteke"]
                 ));
             }
             ?>
@@ -304,7 +321,8 @@ $color_codes = Array(
                         echo "</tr>";
                         $id += 1;
                     }
-                    echo "<tr><td colspan='2'>&nbsp;</td><td>".round(average($response, "TanuloAtlag"),2)."</td><td>".round(average($response, "OsztalyCsoportAtlag"),2)."</td><td>&nbsp</td></tr>"
+                    echo "<tr><td colspan='2'>Átlagok átlaga</td><td>".round(average($response, "TanuloAtlag"),2)."</td><td>".round(average($response, "OsztalyCsoportAtlag"),2)."</td><td>&nbsp</td></tr>";
+                    echo "<tr><td colspan='2'>Jegyek összátlaga</td><td>".round(gradeAverage($osszes_jegy),2)."</td><td></td><td>&nbsp</td></tr>";
                     ?>
                     </tbody>
                 </table>
