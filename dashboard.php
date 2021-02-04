@@ -215,9 +215,22 @@ $color_codes = Array(
                         echo "<td scope=\"row\" colspan='8'><b>".$item["tantargy"]."</b></td>";
                         echo "</tr>";
                         foreach (array_reverse($item) as $subitem){
-                            if(is_numeric($subitem["jegy"]) || $subitem["jegy"] == "-"){
-                                echo "<tr data-toggle=\"tooltip\" data-placement=\"top\" title='".$subitem["tipus"][1]."'><td>&nbsp;</td>";
-                                echo "<td style='color:".$color_codes[$subitem["suly"]]."'>" . $subitem["jegy"] . "</td>";
+
+
+                            if($subitem["suly"] != ""){
+                                if(is_numeric($subitem["jegy"]) || $subitem["jegy"] == "-"){
+                                    echo "<tr data-toggle=\"tooltip\" data-placement=\"top\" title='".$subitem["tipus"][1]."'><td>&nbsp;</td>";
+                                    echo "<td style='color:".$color_codes[$subitem["suly"]]."'>" . $subitem["jegy"] . "</td>";
+                                    echo "<td>" . $subitem["suly"] . "%</td>";
+                                    echo "<td>" . $subitem["tema"] . "</td>";
+                                    echo "<td>" . $subitem["tanar"] . "</td>";
+                                    echo "<td>" . $subitem["beirva"] . "</td>";
+                                    echo "<td>" . $subitem["targynap"] . "</td>";
+                                    echo "</tr>";
+                                }
+                            } else {
+                                echo "<tr data-toggle=\"tooltip\" data-placement=\"top\" title='".$subitem["tipus"][1]."' style='background-color: green; color:white;'><td>&nbsp;</td>";
+                                echo "<td>" . $subitem["jegy"] . "</td>";
                                 echo "<td>" . $subitem["suly"] . "%</td>";
                                 echo "<td>" . $subitem["tema"] . "</td>";
                                 echo "<td>" . $subitem["tanar"] . "</td>";
@@ -226,6 +239,7 @@ $color_codes = Array(
                                 echo "</tr>";
                             }
                         }
+
                     }
                     ?>
                     </tbody>
